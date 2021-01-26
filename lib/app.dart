@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_motivation_quotes/blocs/bloc/quote_bloc.dart';
+import 'package:flutter_motivation_quotes/models/quote.dart';
+import 'package:flutter_motivation_quotes/repositories/sample_quote_repository.dart';
 
 import 'screens/home/home.dart';
 import 'utils/locales/global_localizations.dart';
@@ -19,7 +23,10 @@ class _AppViewState extends State<AppView> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: Home(),
+      home: BlocProvider(
+          create: (_) => QuoteBloc(quoteRepository: SampleQuoteRepository())
+            ..add(FetchQuotes()),
+          child: Home()),
       debugShowCheckedModeBanner: false,
     );
   }

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_motivation_quotes/blocs/bloc/quote_bloc.dart';
 import 'package:flutter_motivation_quotes/config/data.dart';
 import 'package:flutter_motivation_quotes/models/quote.dart';
 import 'package:flutter_motivation_quotes/repositories/sample_quote_repository.dart';
@@ -11,10 +13,7 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  var currentPage = images.length - 1.0;
-
-  final SampleQuoteRepository _quoteRepository = SampleQuoteRepository();
-  List<Quote> _quotes = [];
+  var currentPage = 0.0;
 
   @override
   void initState() {
@@ -23,7 +22,7 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
-    PageController controller = PageController(initialPage: images.length - 1);
+    PageController controller = PageController(initialPage: 0);
     controller.addListener(() {
       setState(() {
         currentPage = controller.page;
@@ -89,40 +88,40 @@ class _HomeState extends State<Home> {
                     SizedBox(
                       width: 15.0,
                     ),
-                    FutureBuilder<List<Quote>>(
-                        future: _quotes.isEmpty
-                            ? _quoteRepository.getAllQuotes()
-                            : null,
-                        builder: (BuildContext context,
-                            AsyncSnapshot<List<Quote>> snapshot) {
-                          if (snapshot.hasData) {
-                            SchedulerBinding.instance
-                                .addPostFrameCallback((_) => setState(() {
-                                      _quotes = snapshot.data;
-                                    }));
-                            print(snapshot.data);
-                            return Text('${snapshot.data.length}+ Stories',
-                                style: TextStyle(color: Colors.white));
-                          }
-                          return Container();
-                        }),
+                    Text('25+ Stories', style: TextStyle(color: Colors.white))
                   ],
                 ),
               ),
-              Stack(
-                children: <Widget>[
-                  CardScrollWidget(currentPage: currentPage, quotes: _quotes),
-                  Positioned.fill(
-                    child: PageView.builder(
-                      itemCount: _quotes.length ?? images.length,
-                      controller: controller,
-                      reverse: true,
-                      itemBuilder: (context, index) {
-                        return Container();
-                      },
-                    ),
-                  )
-                ],
+              BlocBuilder<QuoteBloc, QuoteState>(
+                builder: (context, state) {
+                  switch (state.status) {
+                    case QuoteStatus.failure:
+                      return const Center(child: Text('failed to fetch posts'));
+                    case QuoteStatus.success:
+                      if (state.quotes.isEmpty) {
+                        return const Center(child: Text('no posts'));
+                      }
+                      print(state.quotes.length);
+                      return Stack(
+                        children: <Widget>[
+                          CardScrollWidget(
+                              currentPage: currentPage, quotes: state.quotes),
+                          Positioned.fill(
+                            child: PageView.builder(
+                              itemCount: state.quotes.length,
+                              controller: controller,
+                              reverse: true,
+                              itemBuilder: (context, index) {
+                                return Container();
+                              },
+                            ),
+                          )
+                        ],
+                      );
+                    default:
+                      return const Center(child: CircularProgressIndicator());
+                  }
+                },
               ),
               // FavouriteQuotes(),
               BottomBar(),
